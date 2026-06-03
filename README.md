@@ -6,7 +6,6 @@
 
 A modern, elegant desktop task manager built with Python and CustomTkinter. GetItDone helps you stay organized with a clean interface and task storage.
 
-![GetItDone Screenshot](https://via.placeholder.com/800x600?text=GetItDone+Task+Manager)
 
 ## Features
 
