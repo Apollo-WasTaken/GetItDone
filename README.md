@@ -1,15 +1,15 @@
 # GetItDone
 
-![Logo](assets/logo.png)
+![Logo](Screenshot_list.png)
 
 ## Overview
 GetItDone is a sleek, custom‑tkinter based task manager that helps you track, edit, and delete your to‑do items. It uses the **Anthropic Sans** font family for a modern look and a Midnight Indigo theme.
 
 ## Screenshots
 
-![Main UI](assets/screenshot_main.png)
+![Main UI](Screenshot_default.png)
 
-![Edit Task Dialog](assets/screenshot_edit.png)
+![Edit Task Dialog](screenshot_list.png)
 
 ## Features
 - Add, edit, and delete tasks
@@ -19,36 +19,8 @@ GetItDone is a sleek, custom‑tkinter based task manager that helps you track, 
 - Clean, commented codebase
 
 ## Installation
-```bash
-# Clone the repository (if not already)
-git clone <repo-url>
-cd GetItDone
-
-# (Optional) Create a virtual environment
-python -m venv venv
-venv\Scripts\activate  # Windows
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-## Usage
-```bash
-python main.py
-```
-
-The application window will appear with the custom theme and fonts applied.
-## Building the executable
-
-You can package the app as a Windows executable using PyInstaller:
-
-```bash
-python -m pip install -r requirements.txt  # ensures PyInstaller is installed
-python -m PyInstaller --onefile --windowed --icon get_it_done_logo.ico --name GetItDone main.py
-```
-
-The resulting `GetItDone.exe` will be placed in the `dist` folder.
-
+- Install GetItDone.exe from ![Here]()
+- 
 ## Contributing
 Feel free to open issues or submit pull requests. Keep the code style consistent and update documentation when adding features.
 
