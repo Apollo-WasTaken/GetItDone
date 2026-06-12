@@ -1,67 +1,109 @@
 import customtkinter as ctk
 import json
 import sys
+import os
+import ctypes
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, Callable
+from typing import Callable
 
 # Detect if running as executable or from source
-# When frozen (exe), use exe directory, otherwise use script directory
 if getattr(sys, "frozen", False):
     APP_DIR = Path(sys.executable).parent
 else:
     APP_DIR = Path(__file__).parent
 
-TASKS_FILE = APP_DIR / "tasks.json"
-ctk.set_appearance_mode("dark")  # Default to dark mode, can be toggled
-ctk.set_default_color_theme("blue")
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(os.path.dirname(__file__))
+    return os.path.join(base_path, relative_path)
 
+# Load and register Anthropic Sans fonts
+def load_custom_fonts():
+    fonts_to_load = [
+        "AnthropicSans-Display-Bold-Static.otf",
+        "AnthropicSans-Display-Regular-Static.otf",
+        "AnthropicSans-Display-Medium-Static.otf",
+        "AnthropicSans-Display-Semibold-Static.otf",
+        "AnthropicSans-Display-Extrabold-Static.otf",
+    ]
+    for font_file in fonts_to_load:
+        font_path = resource_path(os.path.join("Anthropic Sans-fontiko", font_file))
+        if sys.platform == "win32" and os.path.exists(font_path):
+            try:
+                # 0x10 is FR_PRIVATE (registers font only for this process)
+                ctypes.windll.gdi32.AddFontResourceExW(font_path, 0x10, 0)
+            except Exception as e:
+                print(f"Error loading custom font {font_file}: {e}")
+
+load_custom_fonts()
+
+TASKS_FILE = APP_DIR / "tasks.json"
 
 def ensure_tasks_file():
     #  Create tasks.json with empty array if it doesn't exist
     if not TASKS_FILE.exists():
         TASKS_FILE.write_text("[]", encoding="utf-8")
 
+# Theme definitions
+# Main Surfaces
+root_bg             = "#0C0E22"
+content_card_bg     = "#0F1028"
+content_card_border = "#252560"
 
-# ─────────────────────────────────────────────────────────────
-# DESIGN TOKENS
+# Inner Cards / Task Cards
+task_card_bg        = "#14143A"
+task_card_hover     = "#1A1A48"
+task_card_selected  = "#221F5A"
+task_card_border    = "#252560"
 
-class T:
-    BG_PRIMARY = ("#F8F7F4", "#1E1E1C")
-    BG_PAGE = ("#F0EFE9", "#141413")
+# Text
+text_primary        = "#EAE8F6"
+text_secondary      = "#B8B1E8"
+text_placeholder    = "#9488CC"
 
-    TEXT_PRIMARY = ("#1A1A1A", "#FAF9F5")
+# Primary Button
+button_primary_bg      = "#6448E4"
+button_primary_hover   = "#7860F8"
+button_primary_border  = "#2E2A78"
+button_primary_text    = "#FFFFFF"
 
-    BORDER_TERTIARY = ("#E0DED5", "#2E2E2B")
-    BORDER_SECONDARY = ("#D0CEC3", "#3D3D3A")
-    BORDER_PRIMARY = ("#C0BEB1", "#4D4D49")
+# Secondary Button
+button_secondary_bg      = "#14143A"
+button_secondary_hover   = "#1A1A48"
+button_secondary_border  = "#252560"
+button_secondary_text    = "#EAE8F6"
 
-    ACCENT_CORAL = ("#D97757", "#D4714A")
-    ACCENT_CORAL_HOV = ("#C06345", "#C06038")
-    ACCENT_CORAL_TXT = ("#FFFFFF", "#FFFFFF")
+# General Tokens
+BG_MAIN      = "#0C0E22"
+BG_CARD      = "#0F1028"
+BG_WIDGET    = "#161840"
+BORDER       = "#252560"
+TEXT         = "#EAE8F6"
+TEXT_MUTED   = "#9488CC"
+ACCENT       = "#6448E4"
+ACCENT_HOVER = "#7860F8"
 
-    FONT_SANS = "Inter"
-
-    FS_HEADING = 30
-    FS_BODY = 16
-
-    RADIUS_MD = 24
-    RADIUS_LG = 28
-    RADIUS_BUTTONS = 14
-    HEIGHT_MD = 44
-    HEIGHT_SM = 32
-
-    BORDER_WIDTH = 1
-
-
-# ─────────────────────────────────────────────────────────────
-# TASK WIDGET
-# Custom component for displaying a single task with Edit/Delete buttons
+# Layout Constants
+RADIUS_MD = 24
+RADIUS_LG = 28
+RADIUS_BUTTONS = 8
+HEIGHT_MD = 44
+HEIGHT_SM = 32
+BORDER_WIDTH = 1
+# Task widget: displays a single task with edit/delete actions
 
 class TaskWidget(ctk.CTkFrame):
     def __init__(self, parent, task_text: str, task_index: int, on_edit: Callable, on_delete: Callable):
-
-        super().__init__(parent, fg_color="transparent")
+        super().__init__(
+            parent,
+            fg_color=task_card_bg,
+            border_color=task_card_border,
+            border_width=BORDER_WIDTH,
+            corner_radius=12
+        )
         self.task_text = task_text
         self.task_index = task_index
         self.on_edit = on_edit
@@ -69,81 +111,102 @@ class TaskWidget(ctk.CTkFrame):
         
         self.grid_columnconfigure(0, weight=1)
         
-        # Task label
+        app = self.winfo_toplevel()
+        
+        # Label showing task text; wrap to avoid overflow
         self.label = ctk.CTkLabel(
             self,
             text=task_text,
-            font=(T.FONT_SANS, T.FS_BODY),
-            text_color=T.TEXT_PRIMARY,
-            anchor="w"
+            font=app.FONT_LABEL,
+            text_color=text_primary,
+            anchor="w",
+            wraplength=560
         )
-        self.label.grid(row=0, column=0, sticky="ew", padx=(0, 10))
+        self.label.grid(row=0, column=0, sticky="ew", padx=(15, 5), pady=10)
         
-        # Button frame
+        # Container for edit/delete buttons
         self.button_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.button_frame.grid(row=0, column=1, sticky="e")
+        self.button_frame.grid(row=0, column=1, sticky="e", padx=(0, 5), pady=10)
         
-        # Edit button
+        # Edit button, opens edit 
         self.edit_button = ctk.CTkButton(
             self.button_frame,
             text="Edit",
-            width=60,
-            height=T.HEIGHT_SM,
-            font=(T.FONT_SANS, 12),
-            fg_color=T.BORDER_SECONDARY[1],
-            hover_color=T.BORDER_PRIMARY[1],
-            text_color=T.TEXT_PRIMARY,
+            width=80,
+            height=HEIGHT_SM,
+            font=app.FONT_BUTTON,
+            fg_color=button_secondary_bg,
+            hover_color=button_secondary_hover,
+            border_color=button_secondary_border,
+            border_width=1,
+            text_color=button_secondary_text,
             corner_radius=8,
             command=lambda: self.on_edit(self.task_index)
         )
         self.edit_button.grid(row=0, column=0, padx=(0, 5))
         
-        # Delete button
+        # Delete button, removes task
         self.delete_button = ctk.CTkButton(
             self.button_frame,
             text="Delete",
-            width=60,
-            height=T.HEIGHT_SM,
-            font=(T.FONT_SANS, 12),
-            fg_color=T.ACCENT_CORAL,
-            hover_color=T.ACCENT_CORAL_HOV,
-            text_color=T.ACCENT_CORAL_TXT,
+            width=80,
+            height=HEIGHT_SM,
+            font=app.FONT_BUTTON,
+            fg_color=button_primary_bg,
+            hover_color=button_primary_hover,
+            border_color=button_primary_border,
+            border_width=1,
+            text_color=button_primary_text,
             corner_radius=8,
             command=lambda: self.on_delete(self.task_index)
         )
         self.delete_button.grid(row=0, column=1)
+
+        # Hover state change
+        def on_enter(event):
+            self.configure(fg_color=task_card_hover)
+        def on_leave(event):
+            self.configure(fg_color=task_card_bg)
+
+        self.bind("<Enter>", on_enter)
+        self.bind("<Leave>", on_leave)
+        self.label.bind("<Enter>", on_enter)
+        self.label.bind("<Leave>", on_leave)
     
     def update_text(self, new_text: str):
         self.task_text = new_text
         self.label.configure(text=new_text)
 
 
-# ─────────────────────────────────────────────────────────────
-# APP
-
+# Application class definition
 class App(ctk.CTk):
 
     def __init__(self):
         super().__init__()
-        self.title("Task Manager")
-        self.minsize(1200, 800)
+        self.title("GetItDone")
+        self.geometry("800x600")
+        
+        # Define custom fonts for titles, labels, buttons, entries
+        self.FONT_TITLE = ("Anthropic Sans Display", 24, "bold")
+        self.FONT_LABEL = ("Anthropic Sans Display", 16,"bold")
+
+        self.FONT_BUTTON = ("Anthropic Sans Display", 20, "bold")
+        self.FONT_ENTRY = ("Anthropic Sans Display", 18,"bold")
         
         # Set window icon (works for both source and exe)
         icon_path = APP_DIR / "get_it_done_logo.ico"
         if icon_path.exists():
             self.iconbitmap(str(icon_path))
         
-        self.configure(fg_color=T.BG_PAGE)
-        # Center content in window
+        self.configure(fg_color=root_bg)
+        # Center main UI components using grid weight
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self.tasks = []
         self.create_layout()
         self.load_tasks()
-        self.after(0, self._show_maximized)
     
-    # ── JSON / task data (helpers) ─────────────────────────────
-
+# JSON helpers
     def _normalize_task(self, item):
         #  Turn one JSON item into {"text", "created_at"}
         if isinstance(item, str):
@@ -159,7 +222,7 @@ class App(ctk.CTk):
         text = task["text"]
         try:
             when = datetime.fromisoformat(task["created_at"])
-            time_str = when.strftime("%d.%m.%Y %H:%M")  # ← customize this line
+            time_str = when.strftime("%d.%m.%Y %H:%M")
         except (KeyError, ValueError):
             time_str = ""
         if time_str:
@@ -201,15 +264,10 @@ class App(ctk.CTk):
         widget.grid(row=index, column=0, sticky="ew", pady=(0, 15))
         self.task_widgets.append(widget)
 
-    def _show_maximized(self):
-        self.state("zoomed")  # fill the screen on Windows
-
-    # ---------------------------------------------------------
-    # LAYOUT
-    # ---------------------------------------------------------
+# Layout
     def create_layout(self):
 
-        # Center container
+        # Center container holds heading and task card
         self.center_frame = ctk.CTkFrame(
             self,
             fg_color="transparent"
@@ -219,41 +277,11 @@ class App(ctk.CTk):
             column=0
         )
 
-        # Main card
-        self.task_card = ctk.CTkFrame(
-            self.center_frame,
-            width=650,
-            height=550,
-            fg_color=T.BG_PRIMARY,
-            corner_radius=T.RADIUS_LG,
-            border_width=T.BORDER_WIDTH,
-            border_color=T.BORDER_TERTIARY
-        )
-
-        self.task_card.grid(row=0, column=0)
-        self.task_card.grid_propagate(False)
-
-        # Card layout
-        self.task_card.grid_columnconfigure(0, weight=1)
-        self.task_card.grid_rowconfigure(3, weight=1)
-
-        self.create_heading()
-        self.create_entry()
-        self.create_buttons()
-        
-        self.create_scrollable_task_list()
-        self.create_theme_toggle()
-
-    # ---------------------------------------------------------
-    # HEADING
-    # ---------------------------------------------------------
-    def create_heading(self):
-
         self.heading = ctk.CTkLabel(
-            self.task_card,
+            self.center_frame,
             text="Get it done",
-            font=(T.FONT_SANS, T.FS_HEADING, "bold"),
-            text_color=T.TEXT_PRIMARY
+            font=self.FONT_TITLE,
+            text_color=text_primary
         )
 
         self.heading.grid(
@@ -261,49 +289,71 @@ class App(ctk.CTk):
             column=0,
             sticky="n",
             padx=30,
-            pady=(30, 20)
+            pady=(15, 10)
         )
 
-    # ---------------------------------------------------------
-    # ENTRY
-    # ---------------------------------------------------------
+        # Main card: contains entry, buttons, and scrollable task list
+        self.task_card = ctk.CTkFrame(
+            self.center_frame,
+            width=620,
+            height=440,
+            fg_color=content_card_bg,
+            corner_radius=RADIUS_LG,
+            border_width=BORDER_WIDTH,
+            border_color=content_card_border
+        )
+
+        self.task_card.grid(row=1, column=0, pady=(0, 15))
+        self.task_card.grid_propagate(False)
+
+        # Card layout
+        self.task_card.grid_columnconfigure(0, weight=1)
+        self.task_card.grid_rowconfigure(2, weight=1)
+
+        self.create_entry()
+        self.create_buttons()
+        self.create_scrollable_task_list()
+
+# Entry field for adding new tasks
     def create_entry(self):
 
         self.task_entry = ctk.CTkEntry(
             self.task_card,
             placeholder_text="Add a task.....",
-            font=(T.FONT_SANS, T.FS_BODY),
-            height=T.HEIGHT_MD,
-            fg_color=T.BG_PRIMARY,
-            border_color=T.BORDER_SECONDARY,
-            border_width=T.BORDER_WIDTH,
-            corner_radius=T.RADIUS_MD
+            font=self.FONT_ENTRY,
+            height=HEIGHT_MD,
+            fg_color=BG_WIDGET,
+            border_color=BORDER,
+            border_width=BORDER_WIDTH,
+            text_color=text_primary,
+            placeholder_text_color=text_placeholder,
+            corner_radius=RADIUS_MD
+            
         )
 
         self.task_entry.grid(
-            row=1,
+            row=0,
             column=0,
             sticky="ew",
             padx=30,
-            pady=(0, 20)
+            pady=(20, 15)
         )
 
         def focus_in(event):
             self.task_entry.configure(
-                border_color=T.BORDER_PRIMARY
+                border_color=ACCENT_HOVER
             )
 
         def focus_out(event):
             self.task_entry.configure(
-                border_color=T.BORDER_SECONDARY
+                border_color=BORDER
             )
 
         self.task_entry.bind("<FocusIn>", focus_in)
         self.task_entry.bind("<FocusOut>", focus_out)
         self.task_entry.bind("<Return>", lambda event: self.add_task())
-    # ---------------------------------------------------------
-    # BUTTONS
-    # ---------------------------------------------------------
+
+# Button panel containing Add Task button
     def create_buttons(self):
 
         self.button_frame = ctk.CTkFrame(
@@ -312,25 +362,27 @@ class App(ctk.CTk):
         )
 
         self.button_frame.grid(
-            row=2,
+            row=1,
             column=0,
             sticky="ew",
             padx=30,
-            pady=(0, 20)
+            pady=(0, 15)
         )
 
         self.button_frame.grid_columnconfigure(0, weight=1)
 
         self.add_button = ctk.CTkButton(
             self.button_frame,
-            font= (T.FONT_SANS, T.FS_BODY),
+            font=self.FONT_BUTTON,
             text="Add Task",
             command=self.add_task,
-            fg_color=T.ACCENT_CORAL,
-            hover_color=T.ACCENT_CORAL_HOV,
-            text_color=T.ACCENT_CORAL_TXT,
-            height=T.HEIGHT_MD,
-            corner_radius=T.RADIUS_BUTTONS
+            fg_color=button_primary_bg,
+            hover_color=button_primary_hover,
+            border_color=button_primary_border,
+            border_width=1,
+            text_color=button_primary_text,
+            height=HEIGHT_MD,
+            corner_radius=RADIUS_BUTTONS
         )
         
         self.add_button.grid(
@@ -339,57 +391,28 @@ class App(ctk.CTk):
             sticky="ew"
         )
 
-    # ---------------------------------------------------------
-    # SCROLLABLE TASK LIST
-    # ---------------------------------------------------------
+# Scrollable frame for task widgets
     def create_scrollable_task_list(self):
         self.task_widgets = []
         
         self.scrollable_frame = ctk.CTkScrollableFrame(
             self.task_card,
             fg_color="transparent",
-            label_text=""
+            label_text="",
+            scrollbar_button_color=task_card_bg,
+            scrollbar_button_hover_color=task_card_hover
         )
         
         self.scrollable_frame.grid(
-            row=3,
+            row=2,
             column=0,
             sticky="nsew",
             padx=30,
-            pady=(0, 30)
+            pady=(0, 20)
         )
-
-    def create_theme_toggle(self):
-        self.theme_button = ctk.CTkButton(
-            self.task_card,
-            text="🌙",
-            width=50,
-            height=50,
-            font=(T.FONT_SANS, 18),
-            fg_color=T.BORDER_SECONDARY[1],
-            hover_color=T.BORDER_PRIMARY[1],
-            text_color=T.TEXT_PRIMARY,
-            corner_radius=20,
-            command=self.toggle_appearance_mode
-        )
-        self.theme_button.grid(
-            row=3,
-            column=0,
-            sticky="sw",
-            padx=20,
-            pady=20
-        )
-
-    def toggle_appearance_mode(self):
-        current_mode = ctk.get_appearance_mode()
-        new_mode = "Light" if current_mode == "Dark" else "Dark"
-        ctk.set_appearance_mode(new_mode)
-        
-        # Update button text
-        self.theme_button.configure(text="☀️" if new_mode == "Light" else "🌙")
+        self.scrollable_frame.grid_columnconfigure(0, weight=1)
 
     def add_task(self):
-        
         text = self.task_entry.get().strip()
 
         if not text:
@@ -404,6 +427,7 @@ class App(ctk.CTk):
         self.task_entry.delete(0, "end")
         self.save_tasks()
 
+    # Remove task and update UI indices
     def delete_task(self, index):
         if index < 0 or index >= len(self.tasks):
             return
@@ -419,6 +443,7 @@ class App(ctk.CTk):
         
         self.save_tasks()
 
+    # Edit task via dialog
     def edit_task(self, index):
         if index < 0 or index >= len(self.tasks):
             return
@@ -430,7 +455,7 @@ class App(ctk.CTk):
         dialog = ctk.CTkToplevel(self)
         dialog.title("Edit Task")
         dialog.geometry("400x200")
-        dialog.configure(fg_color=T.BG_PAGE)
+        dialog.configure(fg_color=root_bg)
         
         # Center the dialog
         dialog.transient(self)
@@ -442,10 +467,10 @@ class App(ctk.CTk):
         # Dialog frame
         dialog_frame = ctk.CTkFrame(
             dialog,
-            fg_color=T.BG_PRIMARY,
-            corner_radius=T.RADIUS_LG,
-            border_width=T.BORDER_WIDTH,
-            border_color=T.BORDER_TERTIARY
+            fg_color=content_card_bg,
+            corner_radius=RADIUS_LG,
+            border_width=BORDER_WIDTH,
+            border_color=content_card_border
         )
         dialog_frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
         dialog_frame.grid_columnconfigure(0, weight=1)
@@ -453,12 +478,14 @@ class App(ctk.CTk):
         # Entry
         entry = ctk.CTkEntry(
             dialog_frame,
-            font=(T.FONT_SANS, T.FS_BODY),
-            height=T.HEIGHT_MD,
-            fg_color=T.BG_PRIMARY,
-            border_color=T.BORDER_SECONDARY,
-            border_width=T.BORDER_WIDTH,
-            corner_radius=T.RADIUS_MD
+            font=self.FONT_ENTRY,
+            height=HEIGHT_MD,
+            fg_color=BG_WIDGET,
+            border_color=BORDER,
+            border_width=BORDER_WIDTH,
+            text_color=text_primary,
+            placeholder_text_color=text_placeholder,
+            corner_radius=RADIUS_MD
         )
         entry.insert(0, current_text)
         entry.grid(row=0, column=0, sticky="ew", padx=20, pady=(20, 10))
@@ -486,13 +513,15 @@ class App(ctk.CTk):
         save_button = ctk.CTkButton(
             button_frame,
             text="Save",
-            font=(T.FONT_SANS, T.FS_BODY),
+            font=self.FONT_BUTTON,
             command=save_edit,
-            fg_color=T.ACCENT_CORAL,
-            hover_color=T.ACCENT_CORAL_HOV,
-            text_color=T.ACCENT_CORAL_TXT,
-            height=T.HEIGHT_MD,
-            corner_radius=T.RADIUS_BUTTONS
+            fg_color=button_primary_bg,
+            hover_color=button_primary_hover,
+            border_color=button_primary_border,
+            border_width=1,
+            text_color=button_primary_text,
+            height=HEIGHT_MD,
+            corner_radius=RADIUS_BUTTONS
         )
         save_button.grid(row=0, column=0, sticky="ew", padx=(0, 5))
         
@@ -500,13 +529,15 @@ class App(ctk.CTk):
         cancel_button = ctk.CTkButton(
             button_frame,
             text="Cancel",
-            font=(T.FONT_SANS, T.FS_BODY),
+            font=self.FONT_BUTTON,
             command=cancel_edit,
-            fg_color=T.BORDER_SECONDARY[1],
-            hover_color=T.BORDER_PRIMARY[1],
-            text_color=T.TEXT_PRIMARY,
-            height=T.HEIGHT_MD,
-            corner_radius=T.RADIUS_BUTTONS
+            fg_color=button_secondary_bg,
+            hover_color=button_secondary_hover,
+            border_color=button_secondary_border,
+            border_width=1,
+            text_color=button_secondary_text,
+            height=HEIGHT_MD,
+            corner_radius=RADIUS_BUTTONS
         )
         cancel_button.grid(row=0, column=1, sticky="ew", padx=(5, 0))
         
