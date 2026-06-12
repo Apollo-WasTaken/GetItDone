@@ -22,7 +22,7 @@ A modern, elegant desktop task manager built with Python and CustomTkinter. GetI
 
 ### Download Executable
 
-Download the latest `GetItDone.exe` from the [Releases](https://github.com/yourusername/GetItDone/releases) page and run it directly. No installation required.
+Download the latest `GetItDone.exe` from the [Releases](https://github.com/Apollo-WasTaken/GetItDone/releases/tag/v1.0.0) page and run it directly. No installation required.
 
 
 ## Usage
