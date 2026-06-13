@@ -19,7 +19,7 @@ GetItDone is a sleek, custom‑tkinter based task manager that helps you track, 
 - Clean, commented codebase
 
 ## Installation
-- Install GetItDone.exe from ![Here]()
+- Install GetItDone.exe from ![Here](https://github.com/Apollo-WasTaken/GetItDone/releases/tag/v2.0.0)
 - 
 ## Contributing
 Feel free to open issues or submit pull requests. Keep the code style consistent and update documentation when adding features.
