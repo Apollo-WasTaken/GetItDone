@@ -1,6 +1,6 @@
 # GetItDone
 
-![Logo](Screenshot_list.png)
+![Logo](get_it_done_logo.ico)
 
 ## Overview
 GetItDone is a sleek, custom‑tkinter based task manager that helps you track, edit, and delete your to‑do items. It uses the **Anthropic Sans** font family for a modern look and a Midnight Indigo theme.
