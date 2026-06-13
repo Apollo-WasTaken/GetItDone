@@ -9,7 +9,7 @@ GetItDone is a sleek, custom‑tkinter based task manager that helps you track, 
 
 ![Main UI](Screenshot_default.png)
 
-![Edit Task Dialog](screenshot_list.png)
+![Edit Task Dialog](Screenshot_list.png)
 
 ## Features
 - Add, edit, and delete tasks
